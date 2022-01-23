@@ -1,8 +1,11 @@
+require('../models/user');
+require('../models/stream');
 const express = require('express');
 const router  = express.Router();
 const {ensureAuthenticated} = require("../config/auth.js");
-const User = require('../models/user');
-const shortid = require('shortid');
+const User = require('mongoose').model('User');
+const Stream = require('mongoose').model('Stream');
+var shortid = require('shortid');
 //login page
 router.get('/', (req,res)=>{
     res.render('../views/welcome.ejs');
@@ -22,44 +25,55 @@ router.get('/dashboard',ensureAuthenticated, (req,res)=>{
     if(err) return console.log(err);
     console.log("Обновленный объект", user);
 }); */
-router.get('/stream_key',ensureAuthenticated, (req,res)=> {
+router.get('/streams/menu',ensureAuthenticated, (req,res)=> {
     var stream_key = shortid.generate();
     console.log('email ', req.user.email);
-    User.updateOne({email : req.user.email}, {stream_key : stream_key}, function(err, result) {
-        if(err) {
-            return console.log(err);
-        } 
-        console.log(result);
-
-    });
-    console.log('stream_key ', req.user.stream_key, ' | ', stream_key);
-    res.render('../views/create_stream.ejs', {
-        stream_key: stream_key
-    });
-    /*User.findOne({email: req.user.email}, (err, user) => {
-        if (!err) {
-            res.json({
-                stream_key: user.stream_key
-            })
-        }
-    }); */
-});
-router.post('/stream_key', ensureAuthenticated, (req, res) => {
-
-        User.findOneAndUpdate({
-            email: req.user.email
-        }, {
-            stream_key: shortid.generate()
-        }, {
-            upsert: true,
-            new: true,
-        }, (err, user) => {
-            if (!err) {
-                res.json({
-                    stream_key: user.stream_key
-                })
+   
+    User.findOne({email: req.user.email}, (err, user) => {
+        if(!err) {
+            if(user) {
+                res.render('../views/update_stream.ejs', {name : user.stream_name,stream_id: user.stream_code, stream_key: user.stream_key});
             }
-    });
+            else {
+                res.render('../views/create_stream.ejs');
+
+                
+            }
+        }
+    })
+
+});
+
+router.post('/streams/create', ensureAuthenticated, (req,res) => {
+    User.findOneAndUpdate({email: req.user.email}, 
+                          {stream_key: shortid.generate(), 
+                            stream_code: shortid.generate(), 
+                            stream_name: req.body.name}, 
+                            { upsert: true,
+                                new: true,
+                            },  (err, user) => {
+                                if(!err) {
+                                    res.render('../views/update_stream.ejs', {stream_key: user.stream_key, stream_id: user.stream_code, name: user.stream_name});
+                                }
+                            });
+                          
+});
+
+
+router.get('/streams/:streamid', ensureAuthenticated, (req, res) => {
+        var streamid = req.params.streamid;
+        User.findOne({stream_code: streamid}, (err, user) => {
+            if(!err) {
+                if(user) {
+                    res.render('../views/stream.ejs', {
+                        stream_key: user.stream_key,
+                        stream_name: user.stream_name,
+                        username: user.name
+                    });
+                }
+            }
+        })
+
 });
 
 

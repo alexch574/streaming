@@ -16,6 +16,12 @@ const UserSchema  = new mongoose.Schema({
     }, stream_key : {
         type : String, 
         required : false
+    }, stream_code : {
+        type: String,
+        required : false
+    }, stream_name: {
+        type: String,
+        required : false
     }
 });
 UserSchema.methods.generateStreamKey = () => {
